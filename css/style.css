@@ -78,7 +78,7 @@ main{max-width:1400px;margin:0 auto;padding:30px 0 80px}
 .orb.fresh{color:#e83f15}
 .orb.fresh:hover,.orb.fresh:focus-visible{border-color:#e83f15}
 .top{justify-content:space-between}
-.txtbtn{background:none;border:0;border-bottom:1px solid var(--ink);padding:4px 2px 1px;margin:0;font:300 14px var(--serif);letter-spacing:.03em;color:var(--ink);cursor:pointer}
+.txtbtn{background:none;border:0;border-bottom:1px solid var(--ink);padding:4px 2px 1px;margin:0;font:300 11px var(--serif);letter-spacing:.03em;color:var(--ink);cursor:pointer}
 .txtbtn:disabled{opacity:.35;cursor:default}
 #sheet{position:fixed;inset:0;z-index:30;background:rgba(255,255,255,.97);display:grid;place-items:center;padding:24px}
 #sheetform{position:relative;width:min(360px,100%);display:flex;flex-direction:column;align-items:center;gap:18px;font-family:var(--serif);font-weight:300}
@@ -94,11 +94,11 @@ main{max-width:1400px;margin:0 auto;padding:30px 0 80px}
 #make{background:none;border:0;border-bottom:1px solid transparent;padding:6px 4px 2px;margin:0;font:inherit;color:inherit;letter-spacing:inherit;cursor:pointer;white-space:nowrap}
 #make:hover,#make:focus-visible{border-color:var(--ink);outline:none}
 .makeedit{display:flex;align-items:baseline;gap:2px;white-space:nowrap;font-size:15px}
-#mk{width:5.5em;border:0;border-bottom:1px solid #e83f15;background:none;font:300 15px var(--serif);text-align:center;padding:2px 0;color:var(--ink);border-radius:0}
+#mk{width:5.5em;border:0;border-bottom:1px solid #e83f15;background:none;font:300 14px var(--serif);text-align:center;padding:2px 0;color:var(--ink);border-radius:0}
 #mk:focus{outline:none}
 .mkgo{margin-left:12px;background:none;border:0;border-bottom:1px solid var(--ink);padding:2px 2px 1px;font:300 13px var(--serif);color:var(--ink);cursor:pointer}
 .srcrow{display:flex;gap:22px}
-.makeform{gap:2px;align-items:baseline;font-size:15px;white-space:nowrap}
+.makeform{gap:2px;align-items:baseline;font-size:14px;white-space:nowrap}
 .mkgo,.txtbtn{display:inline-block}
 label.mkgo,label.txtbtn{cursor:pointer;user-select:none;-webkit-user-select:none}
 .fileinp{position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0}

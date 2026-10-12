@@ -85,7 +85,7 @@ function frame(el, tr, i, click){
   const bx = document.createElement(click ? "button" : "div"); bx.className = "bx"; bx.style.aspectRatio = ratio(p);
   if (click) bx.onclick = click;
   if (p.src){ const im = new Image(); setSrc(im, p.src); im.alt = p.caption || ""; bx.appendChild(im); bx.classList.add("has"); } else bx.textContent = "사진 없음";
-  const l = document.createElement("div"); l.className = "l2"; l.textContent = `${i+1} ${w.name}`;
+  const l = document.createElement("div"); l.className = "l2"; l.textContent = "";
   el.append(bx, l);
 }
 function openV(i){
@@ -100,9 +100,9 @@ function openV(i){
     if (ok) frame(el, tr, j, () => openV(j));
   });
   fitV();
-  $("cap").innerHTML = `${tr.title} · ${i+1}/${tr.photos.length}` + (p.caption ? `<small>${p.caption}</small>` : "");
+  $("cap").textContent = p.caption || "";
   $("pv").disabled = i === 0; $("nx").disabled = i === tr.photos.length - 1;
-  $("cl").focus();
+  $("cl").focus({preventScroll: true, focusVisible: false});
 }
 /* 사진 상자를 칸 안에 비율대로 딱 맞춰서, 캡션이 사진 바로 아래 붙게 */
 function fitV(){

@@ -43,7 +43,8 @@ main{max-width:1400px;margin:0 auto;padding:30px 0 80px}
 .ctl:hover{opacity:1}
 .ctl svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.2;stroke-linecap:butt;stroke-linejoin:miter}
 .ctl:disabled{opacity:.15;cursor:default}
-.cap{text-align:center;font-size:13px}
+.ctl .sq{display:block;width:9px;height:9px;margin:6px;background:currentColor}
+.cap{text-align:center;font-size:13px;letter-spacing:.02em}
 .cap small{display:block;color:#8d9a9f;font-size:11px}
 .stage{flex:1;min-height:0;display:flex;gap:28px;align-items:center;justify-content:center;padding:14px 0}
 .fr{min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px}

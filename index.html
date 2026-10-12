@@ -7,9 +7,16 @@
 <title>율리시스</title>
 <link rel="icon" href="images/logo.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Noto+Serif+KR:wght@200;300&family=IBM+Plex+Sans+KR:wght@300;400;600&display=swap">
-<link rel="stylesheet" href="css/style.css?v=28">
+<script>
+/* 화면이 그려지기 전에 다크 모드 먼저 정하기 (깜빡임 방지) */
+(function(){var t=null;try{t=localStorage.getItem("ulysses_theme")}catch(e){}
+var d=t?t==="dark":matchMedia("(prefers-color-scheme: dark)").matches;if(d)document.documentElement.classList.add("dark")})();
+</script>
+<link rel="stylesheet" href="css/style.css?v=29">
 </head>
 <body>
+
+<button id="theme" type="button" aria-label="다크 모드" aria-pressed="false"></button>
 
 <section id="home" aria-label="율리시스">
   <a class="logo" href="#new" aria-label="새로 만들기 화면으로"><img src="images/logo.png" alt=""></a>
@@ -62,8 +69,8 @@
 <input class="fileinp" id="cam" type="file" accept="image/*" capture="environment" tabindex="-1" aria-hidden="true">
 <input class="fileinp" id="alb" type="file" accept="image/*" tabindex="-1" aria-hidden="true">
 
-<script src="js/config.js?v=28"></script>
-<script src="js/data.js?v=28"></script>
-<script src="js/script.js?v=28"></script>
+<script src="js/config.js?v=29"></script>
+<script src="js/data.js?v=29"></script>
+<script src="js/script.js?v=29"></script>
 </body>
 </html>

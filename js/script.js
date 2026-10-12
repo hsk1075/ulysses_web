@@ -88,6 +88,7 @@ function route(){
   if (m){ TR = TRACKS[+m[1] - 1]; renderTrack(); window.scrollTo(0, 0); }
   if (u) openUserTrack(u[1]);
   if (isNew){ editMake(); loadNewSpace(); }
+  $("theme").hidden = !!(m || u);   // 다크 모드 버튼은 홈·새 공간에서만
   /* 화면이 바뀐 다음에 떠다니기를 다시 시작 (숨겨진 동안엔 멈춰 있음) */
   if (typeof FLOAT !== "undefined") syncAll();
 }
@@ -415,5 +416,21 @@ async function shrink(file, max = 1600){
   const blob = await new Promise(r => cv.toBlob(r, "image/jpeg", 0.86));
   return {blob, w, h};
 }
+
+/* ---------- 다크 모드 버튼 ---------- */
+const darkQ = matchMedia("(prefers-color-scheme: dark)");
+function savedTheme(){ try { return localStorage.getItem("ulysses_theme"); } catch { return null; } }
+function applyTheme(){
+  const t = savedTheme(), dark = t ? t === "dark" : darkQ.matches;
+  document.documentElement.classList.toggle("dark", dark);
+  $("theme").setAttribute("aria-pressed", dark);
+}
+$("theme").onclick = () => {
+  const dark = !document.documentElement.classList.contains("dark");
+  try { localStorage.setItem("ulysses_theme", dark ? "dark" : "light"); } catch {}
+  applyTheme();
+};
+darkQ.addEventListener("change", applyTheme);   // 직접 고르기 전에는 기기 설정을 따라감
+applyTheme();
 
 window.addEventListener("hashchange", route); route();

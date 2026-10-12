@@ -6,12 +6,12 @@
 <title>율리시스</title>
 <link rel="icon" href="images/logo.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Noto+Serif+KR:wght@200;300&family=IBM+Plex+Sans+KR:wght@300;400;600&display=swap">
-<link rel="stylesheet" href="css/style.css?v=17">
+<link rel="stylesheet" href="css/style.css?v=20">
 </head>
 <body>
 
 <section id="home" aria-label="율리시스">
-  <div class="logo"><img src="images/logo.png" alt="율리시스 로고"></div>
+  <a class="logo" href="#new" aria-label="새로 만들기 화면으로"><img src="images/logo.png" alt=""></a>
   <a class="orb" href="#t1">왼손으로부터(1)</a>
   <a class="orb" href="#t2">왼손으로부터(2)</a>
   <a class="orb" href="#t3">왼손으로부터(3)</a>
@@ -31,7 +31,7 @@
 </section>
 
 <section id="track" hidden>
-  <div class="top"><a href="#" id="toplink" aria-label="처음으로"><img id="mini" alt=""><span id="tn"></span></a><button class="txtbtn" id="more" type="button" hidden>이어 찍기</button></div>
+  <div class="top"><a href="#" id="toplink" aria-label="처음으로"><img id="mini" alt=""><span id="tn"></span></a><span class="topbtns"><button class="delbtn dark" id="deltrack" type="button" aria-label="트랙 지우기" title="트랙 지우기" hidden></button><button class="txtbtn" id="more" type="button" hidden>이어 찍기</button></span></div>
     <main>
     <h1 class="sr" id="tt"></h1>
     <div class="scroll"><div class="chain" id="chain"></div></div>
@@ -41,7 +41,7 @@
 <div id="vw" role="dialog" aria-modal="true" aria-label="사진 보기">
   <div class="vtop">
     <button class="ctl" id="pv" aria-label="이전"><span class="sq" aria-hidden="true"></span></button>
-    <div class="capw"><div class="cap" id="cap"></div><button class="delbtn" id="del" type="button" hidden>지우기</button></div>
+    <div class="capw"><div class="cap" id="cap"></div><button class="delbtn" id="del" type="button" aria-label="사진 지우기" title="사진 지우기" hidden></button></div>
     <div class="ctls"><button class="ctl" id="nx" aria-label="다음"><span class="sq" aria-hidden="true"></span></button><button class="ctl" id="cl" aria-label="닫기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
   </div>
   <div class="stage" id="stage"><div class="fr side" id="prev"></div><div class="fr" id="big"></div><div class="fr side" id="next"></div></div>
@@ -61,8 +61,8 @@
 <input class="fileinp" id="cam" type="file" accept="image/*" capture="environment" tabindex="-1" aria-hidden="true">
 <input class="fileinp" id="alb" type="file" accept="image/*" tabindex="-1" aria-hidden="true">
 
-<script src="js/config.js?v=17"></script>
-<script src="js/data.js?v=17"></script>
-<script src="js/script.js?v=17"></script>
+<script src="js/config.js?v=20"></script>
+<script src="js/data.js?v=20"></script>
+<script src="js/script.js?v=20"></script>
 </body>
 </html>

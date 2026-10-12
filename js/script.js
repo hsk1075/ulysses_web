@@ -70,7 +70,7 @@ function renderTrack(){
   const tr = TR, ch = $("chain"); ch.innerHTML = "";
   $("tt").textContent = tr.title; $("tn").textContent = tr.title;
   $("toplink").href = tr.custom ? "#new" : "#";
-  $("more").hidden = !tr.custom;
+  $("more").hidden = !tr.custom; $("deltrack").hidden = !tr.custom; trashIdle($("deltrack"));
   tr.photos.forEach((p, i) => {
     const c = document.createElement("div"); c.className = "cell";
     const b = thumb(tr, i); b.onclick = () => openV(i); c.appendChild(b); ch.appendChild(c);
@@ -113,8 +113,8 @@ function openV(i){
   });
   fitV();
   $("cap").textContent = p.caption || "";
-  /* 내가 올린 사진이면 '지우기' (한 번 더 눌러야 지워짐) */
-  const del = $("del"); del.hidden = !p.mine; del.textContent = "지우기"; del.dataset.armed = "";
+  /* 방문자 트랙의 사진은 누구나 '지우기' (한 번 더 눌러야 지워짐) */
+  const del = $("del"); del.hidden = !tr.custom; trashIdle(del);
   $("pv").disabled = i === 0; $("nx").disabled = i === tr.photos.length - 1;
   $("cl").focus({preventScroll: true, focusVisible: false});
 }
@@ -131,14 +131,21 @@ function closeV(){ $("vw").classList.remove("on"); if (last) last.focus(); }
 $("pv").onclick = () => openV(idx - 1);
 $("nx").onclick = () => openV(idx + 1);
 $("cl").onclick = closeV;
-$("del").onclick = async () => {
-  const del = $("del"), p = TR.photos[idx];
-  if (!del.dataset.armed){ del.dataset.armed = 1; del.textContent = "한 번 더 누르면 지워져요"; setTimeout(() => { if (del.dataset.armed){ del.dataset.armed = ""; del.textContent = "지우기"; } }, 4000); return; }
-  del.disabled = true; del.textContent = "지우는 중…";
-  try { await store.remove(p); closeV(); openUserTrack(TR.id); }
-  catch (e){ console.error(e); del.textContent = "지우지 못했어요"; }
-  finally { del.disabled = false; del.dataset.armed = ""; }
-};
+/* 지우기: 처음엔 쓰레기통 아이콘 → 누르면 '진짜 지우기' → 한 번 더 누르면 지움 */
+const TRASH = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13M10 11v5.5M14 11v5.5"/></svg>';
+function trashIdle(btn){ btn.dataset.armed = ""; btn.disabled = false; btn.innerHTML = TRASH; }
+function twoStep(btn, run){
+  trashIdle(btn);
+  btn.onclick = async () => {
+    if (!btn.dataset.armed){ btn.dataset.armed = 1; btn.textContent = "진짜 지우기";
+      setTimeout(() => { if (btn.dataset.armed && !btn.disabled) trashIdle(btn); }, 4000); return; }
+    btn.disabled = true; btn.textContent = "지우는 중…";
+    try { await run(); trashIdle(btn); }
+    catch (e){ console.error(e); btn.textContent = "지우지 못했어요"; setTimeout(() => trashIdle(btn), 2500); btn.disabled = false; }
+  };
+}
+twoStep($("deltrack"), async () => { await store.removeTrack(TR.id); location.hash = "#new"; });
+twoStep($("del"), async () => { await store.remove(TR.photos[idx]); closeV(); openUserTrack(TR.id); });
 /* 휴대폰: 좌우로 밀어서 넘기기 */
 let sx = null;
 $("stage").addEventListener("touchstart", e => { sx = e.touches[0].clientX; }, {passive: true});
@@ -241,7 +248,8 @@ const memStore = {
   photos: async id => mem.photos.filter(p => p.track_id === id),
   create: async name => { const t = {id: "d" + Date.now().toString(36), name, created_at: new Date().toISOString()}; mem.tracks.push(t); return t; },
   add: async (track_id, author, img) => { const id = uuid(); mem.photos.push({id, track_id, author, url: URL.createObjectURL(img.blob), w: img.w, h: img.h, created_at: new Date().toISOString()}); mineSet(id, "1"); },
-  remove: async p => { mem.photos = mem.photos.filter(x => x.id !== p.id); if (!mem.photos.some(x => x.track_id === p.track_id)) mem.tracks = mem.tracks.filter(t => t.id !== p.track_id); mineSet(p.id); }
+  remove: async p => { mem.photos = mem.photos.filter(x => x.id !== p.id); if (!mem.photos.some(x => x.track_id === p.track_id)) mem.tracks = mem.tracks.filter(t => t.id !== p.track_id); },
+  removeTrack: async id => { mem.photos = mem.photos.filter(x => x.track_id !== id); mem.tracks = mem.tracks.filter(t => t.id !== id); }
 };
 let claudeKit = null;
 async function kit(){
@@ -272,8 +280,11 @@ const claudeStore = {
     await k.db.doc("photos/" + p.id).delete();
     if (k.assets && p.asset) await k.assets.delete(p.asset).catch(() => {});
     const left = await k.db.collection("photos").where("track_id", "==", p.track_id).limit(1).get();
-    if (left.empty) await k.db.doc("tracks/" + p.track_id).delete();
-    mineSet(p.id); }
+    if (left.empty) await k.db.doc("tracks/" + p.track_id).delete(); },
+  removeTrack: async id => { const k = await kit(); if (!k) return memStore.removeTrack(id);
+    const q = await k.db.collection("photos").where("track_id", "==", id).get();
+    for (const d of q.docs){ const a = d.data().asset; await k.db.doc("photos/" + d.id).delete(); if (k.assets && a) await k.assets.delete(a).catch(() => {}); }
+    await k.db.doc("tracks/" + id).delete(); }
 };
 const store = BACKEND === "claude" ? claudeStore : BACKEND === "mem" ? memStore : {
   list: () => api("tracks?select=id,name&order=created_at.desc&limit=40"),
@@ -284,16 +295,25 @@ const store = BACKEND === "claude" ? claudeStore : BACKEND === "mem" ? memStore 
     const path = `${trackId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
     const up = await fetch(`${DB}/storage/v1/object/photos/${path}`, {method: "POST", headers: H({"Content-Type": "image/jpeg"}), body: img.blob});
     if (!up.ok) throw new Error(`${up.status} ${await up.text()}`);
-    const id = uuid(), key = uuid();
-    await api("photos", {method: "POST", body: JSON.stringify({id, track_id: trackId, author, path, w: img.w, h: img.h, del_key: key})});
-    mineSet(id, key);
+    await api("photos", {method: "POST", body: JSON.stringify({id: uuid(), track_id: trackId, author, path, w: img.w, h: img.h})});
   },
-  /* 지우기: 열쇠가 맞을 때만 저장소가 지워 줌 (supabase-delete.sql 의 delete_photo) */
+  /* 지우기: 누구나 (supabase-delete.sql 실행 필요) */
   remove: async p => {
-    const ok = await api("rpc/delete_photo", {method: "POST", body: JSON.stringify({p_id: p.id, p_key: mineAll()[p.id]})});
-    if (ok === false) throw new Error("not_mine");
-    mineSet(p.id);
+    await api(`photos?id=eq.${p.id}`, {method: "DELETE"});
+    await delFiles([p.path]);
+    const left = await api(`photos?track_id=eq.${p.track_id}&select=id&limit=1`);
+    if (!left.length) await api(`tracks?id=eq.${p.track_id}`, {method: "DELETE"});
+  },
+  removeTrack: async id => {
+    const ps = await api(`photos?track_id=eq.${id}&select=path`);
+    await delFiles(ps.map(p => p.path));
+    await api(`tracks?id=eq.${id}`, {method: "DELETE"});   // 사진 목록은 트랙과 함께 지워짐
   }
+};
+/* 사진 파일 지우기 (실패해도 목록에서는 사라지므로 조용히 넘어감) */
+async function delFiles(paths){
+  paths = paths.filter(Boolean); if (!paths.length) return;
+  await fetch(`${DB}/storage/v1/object/photos`, {method: "DELETE", headers: H({"Content-Type": "application/json"}), body: JSON.stringify({prefixes: paths})}).catch(() => {});
 };
 
 /* '으로부터 / 로부터': 이름 끝 글자에 받침이 없거나 ㄹ 받침이면 '로부터' */
@@ -326,14 +346,14 @@ function sessionStorageSet(k, v){ try { sessionStorage.setItem(k, v); } catch {}
 
 /* 방문자가 만든 트랙 열기 */
 async function openUserTrack(id){
-  $("tn").textContent = ""; $("chain").innerHTML = ""; $("more").hidden = true;
+  $("tn").textContent = ""; $("chain").innerHTML = ""; $("more").hidden = true; $("deltrack").hidden = true;
   if (!ready()) return;
   try {
     const t = await store.track(id), ps = await store.photos(id);
     if (location.hash !== `#u/${id}`) return;
     if (!t){ location.hash = "#new"; return; }
     TR = {custom: true, id, name: t.name, title: fromWord(t.name),
-      photos: ps.map(p => ({src: p.url, id: p.id, track_id: id, asset: p.asset, mine: !!mineAll()[p.id], author: p.author, r: p.w && p.h ? p.w / p.h : 0, caption: `${p.author} · ${today(p.created_at)}`}))};
+      photos: ps.map(p => ({src: p.url, id: p.id, track_id: id, asset: p.asset, path: p.path, author: p.author, r: p.w && p.h ? p.w / p.h : 0, caption: `${p.author} · ${today(p.created_at)}`}))};
     renderTrack(); window.scrollTo(0, 0);
   } catch (e){ $("tn").textContent = "트랙을 불러오지 못했어요"; console.error(e); }
 }

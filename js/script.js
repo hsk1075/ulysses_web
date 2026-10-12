@@ -115,7 +115,6 @@ function openV(i){
   $("cap").textContent = p.caption || "";
   /* 방문자 트랙의 사진은 누구나 '지우기' (한 번 더 눌러야 지워짐) */
   const del = $("del"); del.hidden = !tr.custom; trashIdle(del);
-  $("pv").disabled = i === 0; $("nx").disabled = i === tr.photos.length - 1;
   $("cl").focus({preventScroll: true, focusVisible: false});
 }
 /* 사진 상자를 칸 안에 비율대로 딱 맞춰서, 캡션이 사진 바로 아래 붙게 */
@@ -128,8 +127,6 @@ function fitV(){
 }
 addEventListener("resize", () => { if ($("vw").classList.contains("on")) fitV(); });
 function closeV(){ $("vw").classList.remove("on"); if (last) last.focus(); }
-$("pv").onclick = () => openV(idx - 1);
-$("nx").onclick = () => openV(idx + 1);
 $("cl").onclick = closeV;
 /* 지우기: 처음엔 쓰레기통 아이콘 → 누르면 '진짜 지우기' → 한 번 더 누르면 지움 */
 const TRASH = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13M10 11v5.5M14 11v5.5"/></svg>';
@@ -367,7 +364,7 @@ function openSheet(m){
   mode = m; $("sheet").hidden = false; $("sheetmsg").textContent = "";
   $("sheetq").textContent = m === "make" ? "누구로부터 시작할까요" : `${TR.title}에 이어서`;
   $("nmsuf").textContent = m === "make" ? "으로부터" : "";
-  $("nm").placeholder = m === "make" ? "이름" : "찍는 사람 이름";
+  $("nm").placeholder = m === "make" ? "이름" : "";
   $("nm").value = ""; $("nm").focus();
 }
 function closeSheet(){ $("sheet").hidden = true; }

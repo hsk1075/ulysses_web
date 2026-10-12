@@ -135,3 +135,15 @@ body.busy label[data-need]{opacity:.35;pointer-events:none}
 #cl{flex:none}
 #cl svg{stroke-linejoin:miter}
 #more.shot{margin:0;background:none;border:0;font:inherit}
+
+/* ---------- 다크 모드 (기기 설정이 다크면 자동) : 배경 검정, 로고 흰색, 떠다니는 트랙 주황 ---------- */
+@media (prefers-color-scheme: dark){
+  :root{--bg:#000;--ink:#f2f2f2;--mute:#8a969b;color-scheme:dark}
+  .logo img,.top img,.sheetlogo{filter:brightness(0) invert(1)}
+  .orb{color:#e83f15}
+  .orb::before{background:#e83f15}
+  .orb:hover,.orb:focus-visible{border-color:#e83f15}
+  .orb:focus-visible{outline-color:#e83f15}
+  #sheet{background:rgba(0,0,0,.97)}
+  .ph{background:#1a1d1f}
+}

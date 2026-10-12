@@ -228,8 +228,10 @@ const H = (extra = {}) => ({apikey: KEY, Authorization: `Bearer ${KEY}`, ...extr
 async function api(path, opt = {}){
   /* cache:"no-store" — 브라우저가 예전 목록을 기억해 두고 보여 주지 않도록 (새로고침 없이 바로 보이게) */
   const r = await fetch(`${DB}/rest/v1/${path}`, {cache: "no-store", ...opt, headers: H({"Content-Type": "application/json", ...(opt.headers || {})})});
-  if (!r.ok) throw new Error(`${r.status} ${await r.text()}`);
-  return r.status === 204 ? null : r.json();
+  const t = await r.text();
+  if (!r.ok) throw new Error(`${r.status} ${t}`);
+  /* 추가(201)는 내용 없이 돌아오기도 해서, 비어 있으면 그냥 null */
+  return t ? JSON.parse(t) : null;
 }
 const publicUrl = path => `${DB}/storage/v1/object/public/photos/${path}`;
 
@@ -400,9 +402,8 @@ async function upload(f){
     if (mode === "make"){ sessionStorageSet("justMade", trackId); editMake(); loadNewSpace(); }
     else openUserTrack(trackId);
   } catch (e){
-    console.error(e);
-    const code = (String(e.message).match(/^\d{3}/) || [""])[0];
-    msg.textContent = e.message === "no_upload" ? "이 화면에서는 사진을 올릴 수 없어요" : `올리지 못했어요${code ? " (" + code + ")" : ""}. 잠시 후 다시 해 주세요`;
+    /* 실패 문구 대신 화면을 새로 불러오기 (올라간 사진이 있으면 바로 보이도록) */
+    console.error(e); msg.textContent = ""; location.reload(); return;
   } finally { document.body.classList.remove("busy"); }
 }
 /* 올리기 전에 사진을 긴 변 1600px JPEG 로 줄이기 (휴대폰 원본은 너무 커서) */

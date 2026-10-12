@@ -14,12 +14,18 @@ const TRACKS = RAW.map(t => {
 
 /* 한글 파일명: Mac 에서 저장된 방식(NFD)과 입력한 방식(NFC)이 달라도 사진을 찾도록 */
 function setSrc(im, src){
+  if (/^https?:/.test(src)){ im.src = src; return; }
   im.onerror = () => { im.onerror = null; im.src = src.normalize("NFD"); };
   im.src = src.normalize("NFC");
 }
 const $ = id => document.getElementById(id);
-const who = (tr, i) => { const k = i % 2 === 0 ? tr.from : (tr.from === "L" ? "H" : "L"); return {k, name:NAME[k]}; };
-let cur = 0, idx = 0, last = null;
+/* 지금 보고 있는 트랙 (왼손·홍양 트랙 또는 방문자가 만든 트랙) */
+let TR = TRACKS[0], idx = 0, last = null;
+/* 방문자 트랙은 순서대로 왼쪽·오른쪽을 번갈아, 이름은 찍은 사람 */
+const who = (tr, i) => {
+  if (tr.custom) return {k: i % 2 === 0 ? "L" : "H", name: (tr.photos[i] || {}).author || ""};
+  const k = i % 2 === 0 ? tr.from : (tr.from === "L" ? "H" : "L"); return {k, name: NAME[k]};
+};
 $("mini").src = "images/logo.png";
 
 const unit = () => innerWidth < 640 ? 170 : 240;
@@ -37,7 +43,7 @@ function thumb(tr, i){
 /* 모바일: 왼손은 왼쪽, 홍양은 오른쪽에 번갈아 놓이며 아래로 */
 const MOBILE = 640;
 function layoutMobile(){
-  const tr = TRACKS[cur], ch = $("chain"), sc = ch.parentElement, cs = getComputedStyle(sc);
+  const tr = TR, ch = $("chain"), sc = ch.parentElement, cs = getComputedStyle(sc);
   const A = sc.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight), g = 14; let y = 0;
   [...ch.querySelectorAll(".cell")].forEach((c, i) => {
     const r = ratio(tr.photos[i]), w = r >= 1 ? A * 0.72 : A * 0.5, h = w / r;
@@ -49,7 +55,7 @@ function layoutMobile(){
 }
 function layout(){
   if (innerWidth < MOBILE) return layoutMobile();
-  const tr = TRACKS[cur], ch = $("chain"), u = unit(), g = 4; let prev = null, W = 0, H = 0;
+  const tr = TR, ch = $("chain"), u = unit(), g = 4; let prev = null, W = 0, H = 0;
   [...ch.querySelectorAll(".cell")].forEach((c, i) => {
     const r = ratio(tr.photos[i]), w = r >= 1 ? u : u * r, h = r >= 1 ? u / r : u;
     let x = 0, y = 0;
@@ -61,27 +67,33 @@ function layout(){
 }
 
 function renderTrack(){
-  const tr = TRACKS[cur], ch = $("chain"), n = tr.photos.length; ch.innerHTML = "";
+  const tr = TR, ch = $("chain"); ch.innerHTML = "";
   $("tt").textContent = tr.title; $("tn").textContent = tr.title;
+  $("toplink").href = tr.custom ? "#new" : "#";
+  $("more").hidden = !tr.custom;
   tr.photos.forEach((p, i) => {
     const c = document.createElement("div"); c.className = "cell";
     const b = thumb(tr, i); b.onclick = () => openV(i); c.appendChild(b); ch.appendChild(c);
-    if (p.src && !p.r){ const im = new Image(); im.onload = () => { p.r = im.naturalWidth / im.naturalHeight; if (cur === TRACKS.indexOf(tr)) layout(); }; setSrc(im, p.src); }
+    if (p.src && !p.r){ const im = new Image(); im.onload = () => { p.r = im.naturalWidth / im.naturalHeight; if (TR === tr) layout(); }; setSrc(im, p.src); }
   });
   layout();
 }
 addEventListener("resize", () => { if (!$("track").hidden) layout(); });
 
+/* 화면 전환: #t1~#t6 왼손·홍양 트랙 / #new 새로 만들기 공간 / #u/아이디 방문자가 만든 트랙 */
 function route(){
-  const m = /^#t([1-6])$/.exec(location.hash);
-  $("vw").classList.remove("on");
-  $("home").hidden = !!m; $("track").hidden = !m;
-  if (m){ cur = +m[1] - 1; renderTrack(); window.scrollTo(0, 0); }
+  const h = location.hash, m = /^#t([1-6])$/.exec(h), u = /^#u\/([\w-]+)$/.exec(h), isNew = h === "#new";
+  $("vw").classList.remove("on"); closeSheet();
+  $("home").hidden = !!(m || u || isNew); $("new").hidden = !isNew; $("track").hidden = !(m || u);
+  if (m){ TR = TRACKS[+m[1] - 1]; renderTrack(); window.scrollTo(0, 0); }
+  if (u) openUserTrack(u[1]);
+  if (isNew){ editMake(false); loadNewSpace(); }
+  /* 화면이 바뀐 다음에 떠다니기를 다시 시작 (숨겨진 동안엔 멈춰 있음) */
+  if (typeof FLOAT !== "undefined") syncAll();
 }
-window.addEventListener("hashchange", route); route();
 
 function frame(el, tr, i, click){
-  const p = tr.photos[i], w = who(tr, i); el.innerHTML = "";
+  const p = tr.photos[i]; el.innerHTML = "";
   const bx = document.createElement(click ? "button" : "div"); bx.className = "bx"; bx.style.aspectRatio = ratio(p);
   if (click) bx.onclick = click;
   if (p.src){ const im = new Image(); setSrc(im, p.src); im.alt = p.caption || ""; bx.appendChild(im); bx.classList.add("has"); } else bx.textContent = "사진 없음";
@@ -89,7 +101,7 @@ function frame(el, tr, i, click){
   el.append(bx, l);
 }
 function openV(i){
-  idx = i; const tr = TRACKS[cur], p = tr.photos[i], vw = $("vw");
+  idx = i; const tr = TR, p = tr.photos[i], vw = $("vw");
   if (!vw.classList.contains("on")) last = document.activeElement;
   vw.classList.add("on");
   frame($("big"), tr, i);
@@ -123,62 +135,235 @@ $("stage").addEventListener("touchstart", e => { sx = e.touches[0].clientX; }, {
 $("stage").addEventListener("touchend", e => {
   if (sx === null) return; const dx = e.changedTouches[0].clientX - sx; sx = null;
   if (Math.abs(dx) < 40) return;
-  if (dx < 0 && idx < TRACKS[cur].photos.length - 1) openV(idx + 1);
+  if (dx < 0 && idx < TR.photos.length - 1) openV(idx + 1);
   if (dx > 0 && idx > 0) openV(idx - 1);
 });
 document.addEventListener("keydown", e => {
+  if (e.key === "Escape" && !$("sheet").hidden){ closeSheet(); return; }
   if (!$("vw").classList.contains("on")) return;
   if (e.key === "Escape") closeV();
   if (e.key === "ArrowLeft" && idx > 0) openV(idx - 1);
-  if (e.key === "ArrowRight" && idx < TRACKS[cur].photos.length - 1) openV(idx + 1);
+  if (e.key === "ArrowRight" && idx < TR.photos.length - 1) openV(idx + 1);
 });
-/* ---------- 홈: 천천히 떠다니는 링크 ---------- */
-const home = $("home"), orbs = [...home.querySelectorAll(".orb")], logoEl = home.querySelector(".logo");
-const start = [[.07,.16],[.03,.48],[.1,.8],[.72,.2],[.8,.52],[.68,.82]];
+
+/* ---------- 떠다니는 링크 (홈 / 새로 만들기 공간 공용) ---------- */
 /* 기기에서 '동작 줄이기'가 켜져 있으면 멈추지 않고 더 천천히 */
 const still = matchMedia("(prefers-reduced-motion: reduce)");
-let st = [], raf = 0, tPrev = 0;
-function initOrbs(){
-  const W = home.clientWidth, H = home.clientHeight;
-  st = orbs.map((el, i) => {
-    const w = el.offsetWidth, h = el.offsetHeight, a = (i * 2.399 + 0.6), sp = 9 + (i % 3) * 3;
-    return {el, w, h, x: Math.min(W - w - 8, start[i][0] * W), y: start[i][1] * H, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, hold: false};
-  });
-  st.forEach(o => {
-    ["mouseenter","focus"].forEach(e => o.el.addEventListener(e, () => o.hold = true));
-    ["mouseleave","blur"].forEach(e => o.el.addEventListener(e, () => o.hold = false));
-  });
-  place();
+function makeFloater(sec, starts){
+  const logoEl = sec.querySelector(".logo"); let st = [], raf = 0, tPrev = 0;
+  function init(){
+    const W = sec.clientWidth, H = sec.clientHeight;
+    st = [...sec.querySelectorAll(".orb")].map((el, i) => {
+      const w = el.offsetWidth, h = el.offsetHeight, a = (i * 2.399 + 0.6), sp = 9 + (i % 3) * 3;
+      /* 시작 위치: 홈은 정해진 자리, 새 공간은 화면에 고르게 흩어지도록 */
+      const s = (starts && starts[i]) || [(i * 0.618 + 0.05) % 0.9, (i * 0.382 + 0.12) % 0.85];
+      if (!el.dataset.f){ el.dataset.f = 1;
+        ["mouseenter","focus"].forEach(e => el.addEventListener(e, () => { const o = st.find(o => o.el === el); if (o) o.hold = true; }));
+        ["mouseleave","blur"].forEach(e => el.addEventListener(e, () => { const o = st.find(o => o.el === el); if (o) o.hold = false; }));
+      }
+      return {el, w, h, x: Math.min(W - w - 8, s[0] * W), y: s[1] * H, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, hold: false};
+    });
+    place();
+  }
+  function place(){ st.forEach(o => o.el.style.transform = `translate3d(${o.x}px,${o.y}px,0)`); }
+  function tick(t){
+    const dt = Math.min(0.05, (t - tPrev) / 1000 || 0); tPrev = t;
+    const W = sec.clientWidth, H = sec.clientHeight, pad = 8;
+    const hr = sec.getBoundingClientRect(), lr = logoEl.getBoundingClientRect();
+    const ins = lr.width * 0.12;
+    const box = {l: lr.left - hr.left + ins, r: lr.right - hr.left - ins, t: lr.top - hr.top + ins, b: lr.bottom - hr.top - ins};
+    st.forEach(o => {
+      if (o.hold) return;
+      const k = still.matches ? 0.5 : 1; o.x += o.vx * dt * k; o.y += o.vy * dt * k;
+      if (o.x < pad){ o.x = pad; o.vx = Math.abs(o.vx); }
+      if (o.x + o.w > W - pad){ o.x = W - pad - o.w; o.vx = -Math.abs(o.vx); }
+      if (o.y < pad){ o.y = pad; o.vy = Math.abs(o.vy); }
+      if (o.y + o.h > H - pad){ o.y = H - pad - o.h; o.vy = -Math.abs(o.vy); }
+      const ox = Math.min(o.x + o.w, box.r) - Math.max(o.x, box.l), oy = Math.min(o.y + o.h, box.b) - Math.max(o.y, box.t);
+      if (ox > 0 && oy > 0){
+        if (ox < oy){ const left = o.x + o.w / 2 < (box.l + box.r) / 2; o.x += left ? -ox : ox; o.vx = left ? -Math.abs(o.vx) : Math.abs(o.vx); }
+        else { const up = o.y + o.h / 2 < (box.t + box.b) / 2; o.y += up ? -oy : oy; o.vy = up ? -Math.abs(o.vy) : Math.abs(o.vy); }
+      }
+    });
+    place(); raf = requestAnimationFrame(tick);
+  }
+  function sync(){
+    cancelAnimationFrame(raf); raf = 0;
+    if (sec.hidden) return;
+    if (!st.length) init();
+    tPrev = performance.now(); raf = requestAnimationFrame(tick);
+  }
+  return {sync, reset(){ st = []; sync(); }};
 }
-function place(){ st.forEach(o => o.el.style.transform = `translate3d(${o.x}px,${o.y}px,0)`); }
-function tick(t){
-  const dt = Math.min(0.05, (t - tPrev) / 1000 || 0); tPrev = t;
-  const W = home.clientWidth, H = home.clientHeight, pad = 8;
-  const hr = home.getBoundingClientRect(), lr = logoEl.getBoundingClientRect();
-  const ins = lr.width * 0.12;
-  const box = {l: lr.left - hr.left + ins, r: lr.right - hr.left - ins, t: lr.top - hr.top + ins, b: lr.bottom - hr.top - ins};
-  st.forEach(o => {
-    if (o.hold) return;
-    const k = still.matches ? 0.5 : 1; o.x += o.vx * dt * k; o.y += o.vy * dt * k;
-    if (o.x < pad){ o.x = pad; o.vx = Math.abs(o.vx); }
-    if (o.x + o.w > W - pad){ o.x = W - pad - o.w; o.vx = -Math.abs(o.vx); }
-    if (o.y < pad){ o.y = pad; o.vy = Math.abs(o.vy); }
-    if (o.y + o.h > H - pad){ o.y = H - pad - o.h; o.vy = -Math.abs(o.vy); }
-    const ox = Math.min(o.x + o.w, box.r) - Math.max(o.x, box.l), oy = Math.min(o.y + o.h, box.b) - Math.max(o.y, box.t);
-    if (ox > 0 && oy > 0){
-      if (ox < oy){ const left = o.x + o.w / 2 < (box.l + box.r) / 2; o.x += left ? -ox : ox; o.vx = left ? -Math.abs(o.vx) : Math.abs(o.vx); }
-      else { const up = o.y + o.h / 2 < (box.t + box.b) / 2; o.y += up ? -oy : oy; o.vy = up ? -Math.abs(o.vy) : Math.abs(o.vy); }
-    }
-  });
-  place(); raf = requestAnimationFrame(tick);
+const FLOAT = [
+  makeFloater($("home"), [[.07,.16],[.03,.48],[.1,.8],[.72,.2],[.8,.52],[.68,.82]]),
+  makeFloater($("new"))
+];
+const syncAll = () => FLOAT.forEach(f => f.sync()), resetAll = () => FLOAT.forEach(f => f.reset());
+window.addEventListener("resize", resetAll);
+(document.fonts ? document.fonts.ready : Promise.resolve()).then(resetAll);
+
+/* ---------- 새로 만들기: 방문자가 트랙을 만들고 사진을 이어 찍기 (Supabase) ---------- */
+const CFG = window.ULYSSES_CONFIG || {}, DB = (CFG.url || "").replace(/\/$/, ""), KEY = CFG.key || "";
+const ready = () => !!(DB && KEY) || !!CFG.demo || CFG.backend === "claude";
+/* 예전 anon 키(eyJ…)는 Authorization 에도 넣고, 새 publishable 키(sb_publishable_…)는 apikey 에만 */
+const H = (extra = {}) => ({apikey: KEY, ...(KEY.startsWith("sb_") ? {} : {Authorization: `Bearer ${KEY}`}), ...extra});
+async function api(path, opt = {}){
+  const r = await fetch(`${DB}/rest/v1/${path}`, {...opt, headers: H({"Content-Type": "application/json", ...(opt.headers || {})})});
+  if (!r.ok) throw new Error(`${r.status} ${await r.text()}`);
+  return r.status === 204 ? null : r.json();
 }
-function syncHome(){
-  cancelAnimationFrame(raf); raf = 0;
-  if (home.hidden) return;
-  if (!st.length) initOrbs();
-  tPrev = performance.now(); raf = requestAnimationFrame(tick);
+const publicUrl = path => `${DB}/storage/v1/object/public/photos/${path}`;
+
+/* 저장소: 기본은 Supabase. config 에 backend:"claude" 면 Claude 미리보기 페이지의 저장소에 계속 보관,
+   demo:true 면 이 페이지 안에서만 잠깐 보관 */
+const BACKEND = CFG.backend === "claude" ? "claude" : CFG.demo ? "mem" : "supabase";
+const mem = {tracks: [], photos: []};
+const memStore = {
+  list: async () => [...mem.tracks].reverse(),
+  track: async id => mem.tracks.find(t => t.id === id),
+  photos: async id => mem.photos.filter(p => p.track_id === id),
+  create: async name => { const t = {id: "d" + Date.now().toString(36), name, created_at: new Date().toISOString()}; mem.tracks.push(t); return t; },
+  add: async (track_id, author, img) => { mem.photos.push({track_id, author, url: URL.createObjectURL(img.blob), w: img.w, h: img.h, created_at: new Date().toISOString()}); }
+};
+let claudeKit = null;
+async function kit(){
+  if (!claudeKit) claudeKit = (async () => {
+    const c = window.claude; if (!c || !c.use) return null;
+    const [db, assets] = await Promise.all([c.use("db"), c.use("assets")]);
+    return db ? {db, assets} : null;
+  })();
+  return claudeKit;
 }
-window.addEventListener("hashchange", syncHome);
-window.addEventListener("resize", () => { st = []; syncHome(); });
-(document.fonts ? document.fonts.ready : Promise.resolve()).then(() => { st = []; syncHome(); });
-syncHome();
+const claudeStore = {
+  list: async () => { const k = await kit(); if (!k) return memStore.list();
+    const q = await k.db.collection("tracks").orderBy("created_at", "desc").limit(40).get();
+    return q.docs.map(d => ({id: d.id, ...d.data()})); },
+  track: async id => { const k = await kit(); if (!k) return memStore.track(id);
+    const d = await k.db.doc("tracks/" + id).get(); return d.exists ? {id, ...d.data()} : null; },
+  photos: async id => { const k = await kit(); if (!k) return memStore.photos(id);
+    const q = await k.db.collection("photos").where("track_id", "==", id).orderBy("created_at", "asc").get();
+    return q.docs.map(d => { const p = d.data(); return {...p, url: "/_blob/" + p.asset}; }); },
+  create: async name => { const k = await kit(); if (!k) return memStore.create(name);
+    const ref = k.db.collection("tracks").doc(); await ref.set({name, created_at: new Date().toISOString()}); return {id: ref.id}; },
+  add: async (track_id, author, img) => { const k = await kit(); if (!k) return memStore.add(track_id, author, img);
+    if (!k.assets) throw new Error("no_upload");
+    const a = await k.assets.upload(img.blob, {type: "image/jpeg"});
+    await k.db.collection("photos").add({track_id, author, asset: a.id, w: img.w, h: img.h, created_at: new Date().toISOString()}); }
+};
+const store = BACKEND === "claude" ? claudeStore : BACKEND === "mem" ? memStore : {
+  list: () => api("tracks?select=id,name&order=created_at.desc&limit=40"),
+  track: async id => (await api(`tracks?id=eq.${id}&select=id,name`))[0],
+  photos: async id => (await api(`photos?track_id=eq.${id}&select=author,path,w,h,created_at&order=created_at.asc`)).map(p => ({...p, url: publicUrl(p.path)})),
+  create: async name => (await api("tracks", {method: "POST", headers: {Prefer: "return=representation"}, body: JSON.stringify({name})}))[0],
+  add: async (trackId, author, img) => {
+    const path = `${trackId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
+    const up = await fetch(`${DB}/storage/v1/object/photos/${path}`, {method: "POST", headers: H({"Content-Type": "image/jpeg"}), body: img.blob});
+    if (!up.ok) throw new Error(`${up.status} ${await up.text()}`);
+    await api("photos", {method: "POST", body: JSON.stringify({track_id: trackId, author, path, w: img.w, h: img.h})});
+  }
+};
+
+/* '으로부터 / 로부터': 이름 끝 글자에 받침이 없거나 ㄹ 받침이면 '로부터' */
+function fromWord(name){
+  const c = name.charCodeAt(name.length - 1);
+  if (c >= 0xAC00 && c <= 0xD7A3){ const j = (c - 0xAC00) % 28; return name + (j === 0 || j === 8 ? "로부터" : "으로부터"); }
+  return name + "으로부터";
+}
+const today = d => { const t = new Date(d); return `${t.getFullYear()}.${String(t.getMonth()+1).padStart(2,"0")}.${String(t.getDate()).padStart(2,"0")}`; };
+
+/* 새로 만들기 공간: 방문자 트랙들이 로고 주위를 떠다님 */
+async function loadNewSpace(){
+  const sec = $("new"), msg = $("newmsg");
+  sec.querySelectorAll(".orb").forEach(o => o.remove());
+  if (!ready()){ msg.textContent = "저장소가 아직 연결되지 않았어요 (js/config.js)"; return; }
+  msg.textContent = "";
+  try {
+    const list = await store.list();
+    if (location.hash !== "#new") return;
+    list.forEach(t => {
+      const a = document.createElement("a"); a.className = "orb"; a.href = `#u/${t.id}`; a.textContent = fromWord(t.name);
+      if (t.id === sessionStorageGet("justMade")) a.classList.add("fresh");
+      sec.appendChild(a);
+    });
+    FLOAT[1].reset();
+  } catch (e){ msg.textContent = "트랙을 불러오지 못했어요"; console.error(e); }
+}
+function sessionStorageGet(k){ try { return sessionStorage.getItem(k); } catch { return null; } }
+function sessionStorageSet(k, v){ try { sessionStorage.setItem(k, v); } catch {} }
+
+/* 방문자가 만든 트랙 열기 */
+async function openUserTrack(id){
+  $("tn").textContent = ""; $("chain").innerHTML = ""; $("more").hidden = true;
+  if (!ready()) return;
+  try {
+    const t = await store.track(id), ps = await store.photos(id);
+    if (!t || location.hash !== `#u/${id}`) return;
+    TR = {custom: true, id, name: t.name, title: fromWord(t.name),
+      photos: ps.map(p => ({src: p.url, author: p.author, r: p.w && p.h ? p.w / p.h : 0, caption: `${p.author} · ${today(p.created_at)}`}))};
+    renderTrack(); window.scrollTo(0, 0);
+  } catch (e){ $("tn").textContent = "트랙을 불러오지 못했어요"; console.error(e); }
+}
+
+/* 입력 시트: mode 'make' = 새 트랙 이름 / 'more' = 이어 찍는 사람 이름 */
+let mode = "make", pending = "";
+function openSheet(m){
+  mode = m; $("sheet").hidden = false; $("sheetmsg").textContent = "";
+  $("sheetq").textContent = m === "make" ? "누구로부터 시작할까요" : `${TR.title}에 이어서`;
+  $("nmsuf").textContent = m === "make" ? "으로부터" : "";
+  $("nm").placeholder = m === "make" ? "이름" : "찍는 사람 이름";
+  $("nm").value = ""; $("go").disabled = false; $("nm").focus();
+}
+function closeSheet(){ $("sheet").hidden = true; }
+/* 새 공간 아래 '○○으로부터' → 누르면 그 자리에서 이름을 적고 → 찍기 */
+function editMake(on){
+  $("make").hidden = on; $("makeedit").hidden = !on;
+  if (on){ $("mk").value = ""; $("mksuf").textContent = "으로부터"; $("mk").focus(); }
+}
+$("make").onclick = () => ready() ? editMake(true) : ($("newmsg").textContent = "저장소가 아직 연결되지 않았어요 (js/config.js)");
+$("mk").addEventListener("input", () => { const v = $("mk").value.trim(); $("mksuf").textContent = v ? fromWord(v).slice(v.length) : "으로부터"; });
+$("mk").addEventListener("keydown", e => { if (e.key === "Escape") editMake(false); });
+/* 사진 고르기: '카메라' = 휴대폰 카메라 바로 열기 / '앨범' = 사진 보관함에서 고르기 */
+function pick(e){ const src = (e.submitter && e.submitter.dataset.src) || "cam"; $(src).value = ""; $(src).click(); }
+$("makeform").onsubmit = e => {
+  e.preventDefault();
+  const v = $("mk").value.trim(); if (!v){ $("mk").focus(); return; }
+  mode = "make"; pending = v; pick(e);
+};
+$("more").onclick = () => openSheet("more");
+$("sheetx").onclick = closeSheet;
+$("nm").addEventListener("input", () => { if (mode === "make"){ const v = $("nm").value.trim(); $("nmsuf").textContent = v ? fromWord(v).slice(v.length) : "으로부터"; } });
+/* '사진 찍기' → 휴대폰은 카메라가 바로 열리고, 컴퓨터는 사진 고르기 창 */
+$("sheetform").onsubmit = e => {
+  e.preventDefault();
+  const v = $("nm").value.trim();
+  if (!v){ $("sheetmsg").textContent = "이름을 적어 주세요"; $("nm").focus(); return; }
+  pending = v; pick(e);
+};
+["cam", "alb"].forEach(id => $(id).onchange = () => upload($(id).files[0]));
+async function upload(f){
+  if (!f) return;
+  const name = pending, msg = mode === "make" ? $("newmsg") : $("sheetmsg");
+  $("go").disabled = true; msg.textContent = "올리는 중…";
+  try {
+    const img = await shrink(f);
+    const trackId = mode === "more" ? TR.id : (await store.create(name)).id;
+    await store.add(trackId, name, img);
+    closeSheet();
+    if (mode === "make"){ sessionStorageSet("justMade", trackId); editMake(false); loadNewSpace(); }
+    else openUserTrack(trackId);
+  } catch (e){
+    console.error(e); $("go").disabled = false;
+    msg.textContent = e.message === "no_upload" ? "이 화면에서는 사진을 올릴 수 없어요" : "올리지 못했어요. 잠시 후 다시 해 주세요";
+  }
+};
+/* 올리기 전에 사진을 긴 변 1600px JPEG 로 줄이기 (휴대폰 원본은 너무 커서) */
+async function shrink(file, max = 1600){
+  const bmp = await createImageBitmap(file);
+  const s = Math.min(1, max / Math.max(bmp.width, bmp.height)), w = Math.round(bmp.width * s), h = Math.round(bmp.height * s);
+  const cv = document.createElement("canvas"); cv.width = w; cv.height = h; cv.getContext("2d").drawImage(bmp, 0, 0, w, h);
+  const blob = await new Promise(r => cv.toBlob(r, "image/jpeg", 0.86));
+  return {blob, w, h};
+}
+
+window.addEventListener("hashchange", route); route();

@@ -6,7 +6,7 @@
 <title>율리시스</title>
 <link rel="icon" href="images/logo.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Noto+Serif+KR:wght@200;300&family=IBM+Plex+Sans+KR:wght@300;400;600&display=swap">
-<link rel="stylesheet" href="css/style.css?v=9">
+<link rel="stylesheet" href="css/style.css?v=14">
 </head>
 <body>
 
@@ -18,10 +18,20 @@
   <a class="orb" href="#t4">홍양으로부터(1)</a>
   <a class="orb" href="#t5">홍양으로부터(2)</a>
   <a class="orb" href="#t6">홍양으로부터(3)</a>
+  <a class="corner" href="#new">○○으로부터</a>
+</section>
+
+<section id="new" aria-label="새로 만들기" hidden>
+  <a class="logo" href="#" aria-label="왼손·홍양 처음 화면으로"><img src="images/logo.png" alt=""></a>
+  <form class="corner makeform" id="makeform" autocomplete="off">
+    <button id="make" type="button">○○으로부터</button>
+    <span class="makeedit" id="makeedit" hidden><input id="mk" maxlength="12" placeholder="○○" enterkeyhint="go" aria-label="이름"><span id="mksuf">으로부터</span><button class="mkgo" type="submit" data-src="cam">카메라</button><button class="mkgo" type="submit" data-src="alb">앨범</button></span>
+  </form>
+  <p class="newmsg" id="newmsg" role="status"></p>
 </section>
 
 <section id="track" hidden>
-  <div class="top"><a href="#" aria-label="율리시스 처음으로"><img id="mini" alt=""><span id="tn"></span></a></div>
+  <div class="top"><a href="#" id="toplink" aria-label="처음으로"><img id="mini" alt=""><span id="tn"></span></a><button class="txtbtn" id="more" type="button" hidden>이어 찍기</button></div>
     <main>
     <h1 class="sr" id="tt"></h1>
     <div class="scroll"><div class="chain" id="chain"></div></div>
@@ -37,7 +47,21 @@
   <div class="stage" id="stage"><div class="fr side" id="prev"></div><div class="fr" id="big"></div><div class="fr side" id="next"></div></div>
 </div>
 
-<script src="js/data.js?v=9"></script>
-<script src="js/script.js?v=9"></script>
+<div id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetq" hidden>
+  <form id="sheetform" autocomplete="off">
+    <img class="sheetlogo" src="images/logo.png" alt="">
+    <p id="sheetq"></p>
+    <label class="nmrow"><input id="nm" maxlength="12" enterkeyhint="go"><span id="nmsuf"></span></label>
+    <span class="srcrow"><button class="txtbtn" id="go" type="submit" data-src="cam">카메라</button><button class="txtbtn" type="submit" data-src="alb">앨범</button></span>
+    <p class="sheetmsg" id="sheetmsg" role="status"></p>
+    <button class="ctl sheetx" id="sheetx" type="button" aria-label="닫기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </form>
+  <input id="cam" type="file" accept="image/*" capture="environment" hidden>
+  <input id="alb" type="file" accept="image/*" hidden>
+</div>
+
+<script src="js/config.js?v=14"></script>
+<script src="js/data.js?v=14"></script>
+<script src="js/script.js?v=14"></script>
 </body>
 </html>

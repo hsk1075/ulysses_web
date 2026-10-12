@@ -223,10 +223,11 @@ window.addEventListener("resize", resetAll);
 /* ---------- 새로 만들기: 방문자가 트랙을 만들고 사진을 이어 찍기 (Supabase) ---------- */
 const CFG = window.ULYSSES_CONFIG || {}, DB = (CFG.url || "").replace(/\/$/, ""), KEY = CFG.key || "";
 const ready = () => !!(DB && KEY) || !!CFG.demo || CFG.backend === "claude";
-/* 예전 anon 키(eyJ…)는 Authorization 에도 넣고, 새 publishable 키(sb_publishable_…)는 apikey 에만 */
-const H = (extra = {}) => ({apikey: KEY, ...(KEY.startsWith("sb_") ? {} : {Authorization: `Bearer ${KEY}`}), ...extra});
+/* Supabase 공식 라이브러리와 같이 apikey 와 Authorization 둘 다 보냄 (사진 보관함은 Authorization 이 꼭 필요) */
+const H = (extra = {}) => ({apikey: KEY, Authorization: `Bearer ${KEY}`, ...extra});
 async function api(path, opt = {}){
-  const r = await fetch(`${DB}/rest/v1/${path}`, {...opt, headers: H({"Content-Type": "application/json", ...(opt.headers || {})})});
+  /* cache:"no-store" — 브라우저가 예전 목록을 기억해 두고 보여 주지 않도록 (새로고침 없이 바로 보이게) */
+  const r = await fetch(`${DB}/rest/v1/${path}`, {cache: "no-store", ...opt, headers: H({"Content-Type": "application/json", ...(opt.headers || {})})});
   if (!r.ok) throw new Error(`${r.status} ${await r.text()}`);
   return r.status === 204 ? null : r.json();
 }
@@ -393,13 +394,15 @@ async function upload(f){
   try {
     const img = await shrink(f);
     const trackId = mode === "more" ? TR.id : (await store.create(name)).id;
-    await store.add(trackId, name, img);
+    try { await store.add(trackId, name, img); }
+    catch (e){ if (mode === "make") await store.removeTrack(trackId).catch(() => {}); throw e; }   // 사진이 안 올라가면 빈 트랙이 남지 않게
     closeSheet();
     if (mode === "make"){ sessionStorageSet("justMade", trackId); editMake(); loadNewSpace(); }
     else openUserTrack(trackId);
   } catch (e){
     console.error(e);
-    msg.textContent = e.message === "no_upload" ? "이 화면에서는 사진을 올릴 수 없어요" : "올리지 못했어요. 잠시 후 다시 해 주세요";
+    const code = (String(e.message).match(/^\d{3}/) || [""])[0];
+    msg.textContent = e.message === "no_upload" ? "이 화면에서는 사진을 올릴 수 없어요" : `올리지 못했어요${code ? " (" + code + ")" : ""}. 잠시 후 다시 해 주세요`;
   } finally { document.body.classList.remove("busy"); }
 }
 /* 올리기 전에 사진을 긴 변 1600px JPEG 로 줄이기 (휴대폰 원본은 너무 커서) */

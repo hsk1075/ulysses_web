@@ -6,7 +6,7 @@
 <title>율리시스</title>
 <link rel="icon" href="images/logo.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Noto+Serif+KR:wght@200;300&family=IBM+Plex+Sans+KR:wght@300;400;600&display=swap">
-<link rel="stylesheet" href="css/style.css?v=14">
+<link rel="stylesheet" href="css/style.css?v=16">
 </head>
 <body>
 
@@ -24,8 +24,8 @@
 <section id="new" aria-label="새로 만들기" hidden>
   <a class="logo" href="#" aria-label="왼손·홍양 처음 화면으로"><img src="images/logo.png" alt=""></a>
   <form class="corner makeform" id="makeform" autocomplete="off">
-    <button id="make" type="button">○○으로부터</button>
-    <span class="makeedit" id="makeedit" hidden><input id="mk" maxlength="12" placeholder="○○" enterkeyhint="go" aria-label="이름"><span id="mksuf">으로부터</span><button class="mkgo" type="submit" data-src="cam">카메라</button><button class="mkgo" type="submit" data-src="alb">앨범</button></span>
+    <input id="mk" maxlength="12" placeholder="○○" enterkeyhint="go" aria-label="이름"><span id="mksuf">으로부터</span>
+    <label class="mkgo" id="mkcam" for="cam" data-need="mk">카메라</label><label class="mkgo" for="alb" data-need="mk">앨범</label>
   </form>
   <p class="newmsg" id="newmsg" role="status"></p>
 </section>
@@ -52,16 +52,17 @@
     <img class="sheetlogo" src="images/logo.png" alt="">
     <p id="sheetq"></p>
     <label class="nmrow"><input id="nm" maxlength="12" enterkeyhint="go"><span id="nmsuf"></span></label>
-    <span class="srcrow"><button class="txtbtn" id="go" type="submit" data-src="cam">카메라</button><button class="txtbtn" type="submit" data-src="alb">앨범</button></span>
+    <span class="srcrow"><label class="txtbtn" id="nmcam" for="cam" data-need="nm">카메라</label><label class="txtbtn" for="alb" data-need="nm">앨범</label></span>
     <p class="sheetmsg" id="sheetmsg" role="status"></p>
     <button class="ctl sheetx" id="sheetx" type="button" aria-label="닫기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
   </form>
-  <input id="cam" type="file" accept="image/*" capture="environment" hidden>
-  <input id="alb" type="file" accept="image/*" hidden>
 </div>
+<!-- 사진 고르는 칸 (보이지 않게 두고, '카메라' '앨범' 글씨가 연결해서 엶) -->
+<input class="fileinp" id="cam" type="file" accept="image/*" capture="environment" tabindex="-1" aria-hidden="true">
+<input class="fileinp" id="alb" type="file" accept="image/*" tabindex="-1" aria-hidden="true">
 
-<script src="js/config.js?v=14"></script>
-<script src="js/data.js?v=14"></script>
-<script src="js/script.js?v=14"></script>
+<script src="js/config.js?v=16"></script>
+<script src="js/data.js?v=16"></script>
+<script src="js/script.js?v=16"></script>
 </body>
 </html>

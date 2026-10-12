@@ -87,7 +87,7 @@ function route(){
   $("home").hidden = !!(m || u || isNew); $("new").hidden = !isNew; $("track").hidden = !(m || u);
   if (m){ TR = TRACKS[+m[1] - 1]; renderTrack(); window.scrollTo(0, 0); }
   if (u) openUserTrack(u[1]);
-  if (isNew){ editMake(false); loadNewSpace(); }
+  if (isNew){ editMake(); loadNewSpace(); }
   /* 화면이 바뀐 다음에 떠다니기를 다시 시작 (숨겨진 동안엔 멈춰 있음) */
   if (typeof FLOAT !== "undefined") syncAll();
 }
@@ -312,54 +312,50 @@ function openSheet(m){
   $("sheetq").textContent = m === "make" ? "누구로부터 시작할까요" : `${TR.title}에 이어서`;
   $("nmsuf").textContent = m === "make" ? "으로부터" : "";
   $("nm").placeholder = m === "make" ? "이름" : "찍는 사람 이름";
-  $("nm").value = ""; $("go").disabled = false; $("nm").focus();
+  $("nm").value = ""; $("nm").focus();
 }
 function closeSheet(){ $("sheet").hidden = true; }
-/* 새 공간 아래 '○○으로부터' → 누르면 그 자리에서 이름을 적고 → 찍기 */
-function editMake(on){
-  $("make").hidden = on; $("makeedit").hidden = !on;
-  if (on){ $("mk").value = ""; $("mksuf").textContent = "으로부터"; $("mk").focus(); }
-}
-$("make").onclick = () => ready() ? editMake(true) : ($("newmsg").textContent = "저장소가 아직 연결되지 않았어요 (js/config.js)");
+/* 새 공간 아래: 이름 칸 + '카메라' '앨범'이 처음부터 바로 보임 */
+function editMake(){ $("mk").value = ""; $("mksuf").textContent = "으로부터"; }
 $("mk").addEventListener("input", () => { const v = $("mk").value.trim(); $("mksuf").textContent = v ? fromWord(v).slice(v.length) : "으로부터"; });
-$("mk").addEventListener("keydown", e => { if (e.key === "Escape") editMake(false); });
-/* 사진 고르기: '카메라' = 휴대폰 카메라 바로 열기 / '앨범' = 사진 보관함에서 고르기 */
-function pick(e){ const src = (e.submitter && e.submitter.dataset.src) || "cam"; $(src).value = ""; $(src).click(); }
-$("makeform").onsubmit = e => {
-  e.preventDefault();
-  const v = $("mk").value.trim(); if (!v){ $("mk").focus(); return; }
-  mode = "make"; pending = v; pick(e);
-};
 $("more").onclick = () => openSheet("more");
 $("sheetx").onclick = closeSheet;
 $("nm").addEventListener("input", () => { if (mode === "make"){ const v = $("nm").value.trim(); $("nmsuf").textContent = v ? fromWord(v).slice(v.length) : "으로부터"; } });
-/* '사진 찍기' → 휴대폰은 카메라가 바로 열리고, 컴퓨터는 사진 고르기 창 */
-$("sheetform").onsubmit = e => {
-  e.preventDefault();
-  const v = $("nm").value.trim();
-  if (!v){ $("sheetmsg").textContent = "이름을 적어 주세요"; $("nm").focus(); return; }
-  pending = v; pick(e);
-};
+/* 사진 고르기: '카메라' = 휴대폰 카메라 바로 열기 / '앨범' = 사진 보관함에서 고르기.
+   버튼을 <label for="cam|alb"> 로 만들어서, 휴대폰 브라우저가 파일 창을 확실히 열게 함 */
+document.querySelectorAll("label[data-need]").forEach(l => l.addEventListener("click", e => {
+  const inp = $(l.dataset.need), v = inp.value.trim(), make = l.dataset.need === "mk", msg = make ? $("newmsg") : $("sheetmsg");
+  if (!ready()){ e.preventDefault(); msg.textContent = "저장소가 아직 연결되지 않았어요 (js/config.js)"; return; }
+  if (!v){ e.preventDefault(); msg.textContent = "이름을 먼저 적어 주세요"; inp.focus(); return; }
+  msg.textContent = ""; mode = make ? "make" : "more"; pending = v; $(l.htmlFor).value = "";
+}));
+/* 이름 칸에서 Enter = 카메라 */
+$("makeform").onsubmit = e => { e.preventDefault(); $("mkcam").click(); };
+$("sheetform").onsubmit = e => { e.preventDefault(); $("nmcam").click(); };
 ["cam", "alb"].forEach(id => $(id).onchange = () => upload($(id).files[0]));
 async function upload(f){
   if (!f) return;
   const name = pending, msg = mode === "make" ? $("newmsg") : $("sheetmsg");
-  $("go").disabled = true; msg.textContent = "올리는 중…";
+  document.body.classList.add("busy"); msg.textContent = "올리는 중…";
   try {
     const img = await shrink(f);
     const trackId = mode === "more" ? TR.id : (await store.create(name)).id;
     await store.add(trackId, name, img);
     closeSheet();
-    if (mode === "make"){ sessionStorageSet("justMade", trackId); editMake(false); loadNewSpace(); }
+    if (mode === "make"){ sessionStorageSet("justMade", trackId); editMake(); loadNewSpace(); }
     else openUserTrack(trackId);
   } catch (e){
-    console.error(e); $("go").disabled = false;
+    console.error(e);
     msg.textContent = e.message === "no_upload" ? "이 화면에서는 사진을 올릴 수 없어요" : "올리지 못했어요. 잠시 후 다시 해 주세요";
-  }
-};
+  } finally { document.body.classList.remove("busy"); }
+}
 /* 올리기 전에 사진을 긴 변 1600px JPEG 로 줄이기 (휴대폰 원본은 너무 커서) */
 async function shrink(file, max = 1600){
-  const bmp = await createImageBitmap(file);
+  /* 일부 휴대폰 브라우저는 createImageBitmap 이 안 돼서, 그때는 <img> 로 읽기 */
+  const bmp = await createImageBitmap(file).catch(() => new Promise((ok, no) => {
+    const im = new Image(); im.onload = () => ok(im); im.onerror = no; im.src = URL.createObjectURL(file);
+  }));
+  if (!bmp.width){ bmp.width = bmp.naturalWidth; bmp.height = bmp.naturalHeight; }
   const s = Math.min(1, max / Math.max(bmp.width, bmp.height)), w = Math.round(bmp.width * s), h = Math.round(bmp.height * s);
   const cv = document.createElement("canvas"); cv.width = w; cv.height = h; cv.getContext("2d").drawImage(bmp, 0, 0, w, h);
   const blob = await new Promise(r => cv.toBlob(r, "image/jpeg", 0.86));

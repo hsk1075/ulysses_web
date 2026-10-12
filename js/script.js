@@ -113,6 +113,8 @@ function openV(i){
   });
   fitV();
   $("cap").textContent = p.caption || "";
+  /* 내가 올린 사진이면 '지우기' (한 번 더 눌러야 지워짐) */
+  const del = $("del"); del.hidden = !p.mine; del.textContent = "지우기"; del.dataset.armed = "";
   $("pv").disabled = i === 0; $("nx").disabled = i === tr.photos.length - 1;
   $("cl").focus({preventScroll: true, focusVisible: false});
 }
@@ -129,6 +131,14 @@ function closeV(){ $("vw").classList.remove("on"); if (last) last.focus(); }
 $("pv").onclick = () => openV(idx - 1);
 $("nx").onclick = () => openV(idx + 1);
 $("cl").onclick = closeV;
+$("del").onclick = async () => {
+  const del = $("del"), p = TR.photos[idx];
+  if (!del.dataset.armed){ del.dataset.armed = 1; del.textContent = "한 번 더 누르면 지워져요"; setTimeout(() => { if (del.dataset.armed){ del.dataset.armed = ""; del.textContent = "지우기"; } }, 4000); return; }
+  del.disabled = true; del.textContent = "지우는 중…";
+  try { await store.remove(p); closeV(); openUserTrack(TR.id); }
+  catch (e){ console.error(e); del.textContent = "지우지 못했어요"; }
+  finally { del.disabled = false; del.dataset.armed = ""; }
+};
 /* 휴대폰: 좌우로 밀어서 넘기기 */
 let sx = null;
 $("stage").addEventListener("touchstart", e => { sx = e.touches[0].clientX; }, {passive: true});
@@ -215,6 +225,12 @@ async function api(path, opt = {}){
 }
 const publicUrl = path => `${DB}/storage/v1/object/public/photos/${path}`;
 
+/* 내가 올린 사진: 올릴 때 만든 '지우기 열쇠'를 이 기기에만 저장 → 그 사진만 지우기 버튼이 보임 */
+const MINE_KEY = "ulysses_mine";
+function mineAll(){ try { return JSON.parse(localStorage.getItem(MINE_KEY) || "{}"); } catch { return {}; } }
+function mineSet(id, key){ const m = mineAll(); if (key) m[id] = key; else delete m[id]; try { localStorage.setItem(MINE_KEY, JSON.stringify(m)); } catch {} }
+const uuid = () => (crypto.randomUUID ? crypto.randomUUID() : "10000000-1000-4000-8000-100000000000".replace(/[018]/g, c => (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)));
+
 /* 저장소: 기본은 Supabase. config 에 backend:"claude" 면 Claude 미리보기 페이지의 저장소에 계속 보관,
    demo:true 면 이 페이지 안에서만 잠깐 보관 */
 const BACKEND = CFG.backend === "claude" ? "claude" : CFG.demo ? "mem" : "supabase";
@@ -224,7 +240,8 @@ const memStore = {
   track: async id => mem.tracks.find(t => t.id === id),
   photos: async id => mem.photos.filter(p => p.track_id === id),
   create: async name => { const t = {id: "d" + Date.now().toString(36), name, created_at: new Date().toISOString()}; mem.tracks.push(t); return t; },
-  add: async (track_id, author, img) => { mem.photos.push({track_id, author, url: URL.createObjectURL(img.blob), w: img.w, h: img.h, created_at: new Date().toISOString()}); }
+  add: async (track_id, author, img) => { const id = uuid(); mem.photos.push({id, track_id, author, url: URL.createObjectURL(img.blob), w: img.w, h: img.h, created_at: new Date().toISOString()}); mineSet(id, "1"); },
+  remove: async p => { mem.photos = mem.photos.filter(x => x.id !== p.id); if (!mem.photos.some(x => x.track_id === p.track_id)) mem.tracks = mem.tracks.filter(t => t.id !== p.track_id); mineSet(p.id); }
 };
 let claudeKit = null;
 async function kit(){
@@ -243,24 +260,39 @@ const claudeStore = {
     const d = await k.db.doc("tracks/" + id).get(); return d.exists ? {id, ...d.data()} : null; },
   photos: async id => { const k = await kit(); if (!k) return memStore.photos(id);
     const q = await k.db.collection("photos").where("track_id", "==", id).orderBy("created_at", "asc").get();
-    return q.docs.map(d => { const p = d.data(); return {...p, url: "/_blob/" + p.asset}; }); },
+    return q.docs.map(d => { const p = d.data(); return {...p, id: d.id, url: "/_blob/" + p.asset}; }); },
   create: async name => { const k = await kit(); if (!k) return memStore.create(name);
     const ref = k.db.collection("tracks").doc(); await ref.set({name, created_at: new Date().toISOString()}); return {id: ref.id}; },
   add: async (track_id, author, img) => { const k = await kit(); if (!k) return memStore.add(track_id, author, img);
     if (!k.assets) throw new Error("no_upload");
     const a = await k.assets.upload(img.blob, {type: "image/jpeg"});
-    await k.db.collection("photos").add({track_id, author, asset: a.id, w: img.w, h: img.h, created_at: new Date().toISOString()}); }
+    const ref = await k.db.collection("photos").add({track_id, author, asset: a.id, w: img.w, h: img.h, created_at: new Date().toISOString()});
+    mineSet(ref.id, "1"); },
+  remove: async p => { const k = await kit(); if (!k) return memStore.remove(p);
+    await k.db.doc("photos/" + p.id).delete();
+    if (k.assets && p.asset) await k.assets.delete(p.asset).catch(() => {});
+    const left = await k.db.collection("photos").where("track_id", "==", p.track_id).limit(1).get();
+    if (left.empty) await k.db.doc("tracks/" + p.track_id).delete();
+    mineSet(p.id); }
 };
 const store = BACKEND === "claude" ? claudeStore : BACKEND === "mem" ? memStore : {
   list: () => api("tracks?select=id,name&order=created_at.desc&limit=40"),
   track: async id => (await api(`tracks?id=eq.${id}&select=id,name`))[0],
-  photos: async id => (await api(`photos?track_id=eq.${id}&select=author,path,w,h,created_at&order=created_at.asc`)).map(p => ({...p, url: publicUrl(p.path)})),
+  photos: async id => (await api(`photos?track_id=eq.${id}&select=id,track_id,author,path,w,h,created_at&order=created_at.asc`)).map(p => ({...p, url: publicUrl(p.path)})),
   create: async name => (await api("tracks", {method: "POST", headers: {Prefer: "return=representation"}, body: JSON.stringify({name})}))[0],
   add: async (trackId, author, img) => {
     const path = `${trackId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
     const up = await fetch(`${DB}/storage/v1/object/photos/${path}`, {method: "POST", headers: H({"Content-Type": "image/jpeg"}), body: img.blob});
     if (!up.ok) throw new Error(`${up.status} ${await up.text()}`);
-    await api("photos", {method: "POST", body: JSON.stringify({track_id: trackId, author, path, w: img.w, h: img.h})});
+    const id = uuid(), key = uuid();
+    await api("photos", {method: "POST", body: JSON.stringify({id, track_id: trackId, author, path, w: img.w, h: img.h, del_key: key})});
+    mineSet(id, key);
+  },
+  /* 지우기: 열쇠가 맞을 때만 저장소가 지워 줌 (supabase-delete.sql 의 delete_photo) */
+  remove: async p => {
+    const ok = await api("rpc/delete_photo", {method: "POST", body: JSON.stringify({p_id: p.id, p_key: mineAll()[p.id]})});
+    if (ok === false) throw new Error("not_mine");
+    mineSet(p.id);
   }
 };
 
@@ -298,9 +330,10 @@ async function openUserTrack(id){
   if (!ready()) return;
   try {
     const t = await store.track(id), ps = await store.photos(id);
-    if (!t || location.hash !== `#u/${id}`) return;
+    if (location.hash !== `#u/${id}`) return;
+    if (!t){ location.hash = "#new"; return; }
     TR = {custom: true, id, name: t.name, title: fromWord(t.name),
-      photos: ps.map(p => ({src: p.url, author: p.author, r: p.w && p.h ? p.w / p.h : 0, caption: `${p.author} · ${today(p.created_at)}`}))};
+      photos: ps.map(p => ({src: p.url, id: p.id, track_id: id, asset: p.asset, mine: !!mineAll()[p.id], author: p.author, r: p.w && p.h ? p.w / p.h : 0, caption: `${p.author} · ${today(p.created_at)}`}))};
     renderTrack(); window.scrollTo(0, 0);
   } catch (e){ $("tn").textContent = "트랙을 불러오지 못했어요"; console.error(e); }
 }

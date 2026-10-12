@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>율리시스</title>
+<link rel="icon" href="images/logo.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Noto+Serif+KR:wght@200;300&family=IBM+Plex+Sans+KR:wght@300;400;600&display=swap">
+<link rel="stylesheet" href="css/style.css?v=8">
+</head>
+<body>
+
+<section id="home" aria-label="율리시스">
+  <div class="logo"><img src="images/logo.png" alt="율리시스 로고"></div>
+  <a class="orb" href="#t1">왼손으로부터(1)</a>
+  <a class="orb" href="#t2">왼손으로부터(2)</a>
+  <a class="orb" href="#t3">왼손으로부터(3)</a>
+  <a class="orb" href="#t4">홍양으로부터(1)</a>
+  <a class="orb" href="#t5">홍양으로부터(2)</a>
+  <a class="orb" href="#t6">홍양으로부터(3)</a>
+</section>
+
+<section id="track" hidden>
+  <div class="top"><a href="#" aria-label="율리시스 처음으로"><img id="mini" alt=""><span id="tn"></span></a></div>
+    <main>
+    <h1 class="sr" id="tt"></h1>
+    <div class="scroll"><div class="chain" id="chain"></div></div>
+  </main>
+</section>
+
+<div id="vw" role="dialog" aria-modal="true" aria-label="사진 보기">
+  <div class="vtop">
+    <button class="ctl" id="pv" aria-label="이전"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <div class="cap" id="cap"></div>
+    <div class="ctls"><button class="ctl" id="nx" aria-label="다음"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button><button class="ctl" id="cl" aria-label="닫기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+  </div>
+  <div class="stage" id="stage"><div class="fr side" id="prev"></div><div class="fr" id="big"></div><div class="fr side" id="next"></div></div>
+</div>
+
+<script src="js/data.js?v=8"></script>
+<script src="js/script.js?v=8"></script>
+</body>
+</html>

@@ -13,10 +13,16 @@ const TRACKS = RAW.map(t => {
 });
 
 /* 한글 파일명: Mac 에서 저장된 방식(NFD)과 입력한 방식(NFC)이 달라도 사진을 찾도록 */
-function setSrc(im, src){
-  if (/^https?:/.test(src)){ im.src = src; return; }
-  im.onerror = () => { im.onerror = null; im.src = src.normalize("NFD"); };
-  im.src = src.normalize("NFC");
+/* small = true 이면 작은 미리보기 사진(thumbs/ 폴더)을 먼저 쓰고, 없으면 원본으로.
+   thumbs/ 는 photos/ 와 같은 구조 (예: photos/left(1)/1.jpg → thumbs/left(1)/1.jpg) */
+function setSrc(im, src, small){
+  if (/^(https?:|\/_blob\/|blob:)/.test(src)){ im.src = src; return; }
+  const list = [];
+  if (small && src.startsWith("photos/")){ const t = "thumbs/" + src.slice(7); list.push(t.normalize("NFC"), t.normalize("NFD")); }
+  list.push(src.normalize("NFC"), src.normalize("NFD"));
+  let k = 0;
+  im.onerror = () => { if (++k < list.length) im.src = list[k]; else im.onerror = null; };
+  im.src = list[0];
 }
 const $ = id => document.getElementById(id);
 /* 지금 보고 있는 트랙 (왼손·홍양 트랙 또는 방문자가 만든 트랙) */
@@ -34,7 +40,7 @@ function thumb(tr, i){
   const p = tr.photos[i], w = who(tr, i), b = document.createElement("button");
   b.className = "ph" + (p.src ? "" : " empty");
   b.setAttribute("aria-label", `${w.name}, ${i+1}번째 사진`);
-  if (p.src){ const im = new Image(); setSrc(im, p.src); im.alt = p.caption || ""; b.appendChild(im); }
+  if (p.src){ const im = new Image(); im.loading = "lazy"; im.decoding = "async"; setSrc(im, p.src, true); im.alt = p.caption || ""; b.appendChild(im); }
   const l = document.createElement("span"); l.className = "lab"; l.textContent = p.caption || `${i+1} ${w.name}`; b.appendChild(l);
   return b;
 }
@@ -74,7 +80,7 @@ function renderTrack(){
   tr.photos.forEach((p, i) => {
     const c = document.createElement("div"); c.className = "cell";
     const b = thumb(tr, i); b.onclick = () => openV(i); c.appendChild(b); ch.appendChild(c);
-    if (p.src && !p.r){ const im = new Image(); im.onload = () => { p.r = im.naturalWidth / im.naturalHeight; if (TR === tr) layout(); }; setSrc(im, p.src); }
+    if (p.src && !p.r){ const im = new Image(); im.onload = () => { p.r = im.naturalWidth / im.naturalHeight; if (TR === tr) layout(); }; setSrc(im, p.src, true); }
   });
   layout();
 }
@@ -97,7 +103,7 @@ function frame(el, tr, i, click){
   const p = tr.photos[i]; el.innerHTML = "";
   const bx = document.createElement(click ? "button" : "div"); bx.className = "bx"; bx.style.aspectRatio = ratio(p);
   if (click) bx.onclick = click;
-  if (p.src){ const im = new Image(); setSrc(im, p.src); im.alt = p.caption || ""; bx.appendChild(im); bx.classList.add("has"); } else bx.textContent = "사진 없음";
+  if (p.src){ const im = new Image(); im.decoding = "async"; setSrc(im, p.src, !!click); im.alt = p.caption || ""; bx.appendChild(im); bx.classList.add("has"); } else bx.textContent = "사진 없음";
   const l = document.createElement("div"); l.className = "l2"; l.textContent = "";
   el.append(bx, l);
 }

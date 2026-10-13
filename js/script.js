@@ -88,7 +88,7 @@ function route(){
   if (m){ TR = TRACKS[+m[1] - 1]; renderTrack(); window.scrollTo(0, 0); }
   if (u) openUserTrack(u[1]);
   if (isNew){ editMake(); loadNewSpace(); }
-  $("theme").hidden = !!(m || u);   // 다크 모드 버튼은 홈·새 공간에서만
+  $("theme").hidden = $("makebar").hidden = !!(m || u);   // 다크 모드 버튼·아래 막대는 첫 화면·새 공간에서만
   /* 화면이 바뀐 다음에 떠다니기를 다시 시작 (숨겨진 동안엔 멈춰 있음) */
   if (typeof FLOAT !== "undefined") syncAll();
 }
@@ -370,8 +370,20 @@ function openSheet(m){
 }
 function closeSheet(){ $("sheet").hidden = true; }
 /* 새 공간 아래: 이름 칸 + '카메라' '앨범'이 처음부터 바로 보임 */
-function editMake(){ $("mk").value = ""; $("mksuf").textContent = "으로부터"; }
-$("mk").addEventListener("input", () => { const v = $("mk").value.trim(); $("mksuf").textContent = v ? fromWord(v).slice(v.length) : "으로부터"; });
+function editMake(){ $("mk").value = ""; $("mksuf").textContent = "으로부터"; fitMk(); }
+/* 이름 칸 폭을 글자 수에 맞춰서 '○○으로부터'가 한 덩어리처럼 보이게 */
+/* 글꼴마다 글자 폭이 달라서, 실제로 그려 보고 그 폭만큼 칸을 맞춤 (○○가 잘리지 않게) */
+const mkRuler = document.createElement("span");
+Object.assign(mkRuler.style, {position: "absolute", visibility: "hidden", whiteSpace: "pre", left: "-9999px", top: "0"});
+document.body.appendChild(mkRuler);
+function fitMk(){
+  const mk = $("mk"), cs = getComputedStyle(mk);
+  mkRuler.style.font = cs.font; mkRuler.style.letterSpacing = cs.letterSpacing;
+  mkRuler.textContent = mk.value || mk.placeholder;
+  mk.style.width = Math.ceil(mkRuler.getBoundingClientRect().width) + 3 + "px";
+}
+(document.fonts ? document.fonts.ready : Promise.resolve()).then(fitMk);
+$("mk").addEventListener("input", () => { const v = $("mk").value.trim(); $("mksuf").textContent = v ? fromWord(v).slice(v.length) : "으로부터"; fitMk(); });
 $("more").onclick = () => openSheet("more");
 $("sheetx").onclick = closeSheet;
 $("nm").addEventListener("input", () => { if (mode === "make"){ const v = $("nm").value.trim(); $("nmsuf").textContent = v ? fromWord(v).slice(v.length) : "으로부터"; } });
@@ -397,7 +409,8 @@ async function upload(f){
     try { await store.add(trackId, name, img); }
     catch (e){ if (mode === "make") await store.removeTrack(trackId).catch(() => {}); throw e; }   // 사진이 안 올라가면 빈 트랙이 남지 않게
     closeSheet();
-    if (mode === "make"){ sessionStorageSet("justMade", trackId); editMake(); loadNewSpace(); }
+    if (mode === "make"){ sessionStorageSet("justMade", trackId); editMake();
+      if (location.hash === "#new") loadNewSpace(); else location.hash = "#new"; }   // 첫 화면에서 올려도 새로 만들기 화면으로
     else openUserTrack(trackId);
   } catch (e){
     /* 실패 문구 대신 화면을 새로 불러오기 (올라간 사진이 있으면 바로 보이도록) */

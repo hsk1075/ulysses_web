@@ -12,7 +12,7 @@
 (function(){var t=null;try{t=localStorage.getItem("ulysses_theme")}catch(e){}
 var d=t?t==="dark":matchMedia("(prefers-color-scheme: dark)").matches;if(d)document.documentElement.classList.add("dark")})();
 </script>
-<link rel="stylesheet" href="css/style.css?v=29">
+<link rel="stylesheet" href="css/style.css?v=31">
 </head>
 <body>
 
@@ -26,17 +26,20 @@ var d=t?t==="dark":matchMedia("(prefers-color-scheme: dark)").matches;if(d)docum
   <a class="orb" href="#t4">홍양으로부터(1)</a>
   <a class="orb" href="#t5">홍양으로부터(2)</a>
   <a class="orb" href="#t6">홍양으로부터(3)</a>
-  <a class="corner" href="#new">○○으로부터</a>
 </section>
 
 <section id="new" aria-label="새로 만들기" hidden>
   <a class="logo" href="#" aria-label="왼손·홍양 처음 화면으로"><img src="images/logo.png" alt=""></a>
-  <form class="corner makeform" id="makeform" autocomplete="off">
-    <input id="mk" maxlength="12" placeholder="○○" enterkeyhint="go" aria-label="이름"><span id="mksuf">으로부터</span>
-    <label class="shot" id="mkcam" for="alb" data-need="mk" aria-label="사진 찍기 또는 고르기" title="사진"><i></i><i></i><i></i></label>
-  </form>
-  <p class="newmsg" id="newmsg" role="status"></p>
 </section>
+
+<!-- 아래 '○○으로부터 ●●●' : 첫 화면과 새로 만들기 화면에 똑같이. ○○을 눌러 이름을 적고 ●●●로 사진 -->
+<div class="makebar" id="makebar">
+  <p class="newmsg" id="newmsg" role="status"></p>
+  <form class="makeform" id="makeform" autocomplete="off">
+    <input id="mk" maxlength="12" placeholder="○○" enterkeyhint="go" aria-label="이름"><span id="mksuf">으로부터</span>
+    <label class="shot" id="mkcam" for="alb" data-need="mk" aria-label="사진 찍기 또는 고르기" ><i></i><i></i><i></i></label>
+  </form>
+</div>
 
 <section id="track" hidden>
   <div class="top"><a href="#" id="toplink" aria-label="처음으로"><img id="mini" alt=""><span id="tn"></span></a><span class="topbtns"><button class="delbtn dark" id="deltrack" type="button" aria-label="트랙 지우기" title="트랙 지우기" hidden></button><button class="shot" id="more" type="button" aria-label="이어 찍기" title="이어 찍기" hidden><i></i><i></i><i></i></button></span></div>
@@ -69,8 +72,8 @@ var d=t?t==="dark":matchMedia("(prefers-color-scheme: dark)").matches;if(d)docum
 <input class="fileinp" id="cam" type="file" accept="image/*" capture="environment" tabindex="-1" aria-hidden="true">
 <input class="fileinp" id="alb" type="file" accept="image/*" tabindex="-1" aria-hidden="true">
 
-<script src="js/config.js?v=29"></script>
-<script src="js/data.js?v=29"></script>
-<script src="js/script.js?v=29"></script>
+<script src="js/config.js?v=31"></script>
+<script src="js/data.js?v=31"></script>
+<script src="js/script.js?v=31"></script>
 </body>
 </html>

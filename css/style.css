@@ -74,7 +74,7 @@ main{max-width:1400px;margin:0 auto;padding:30px 0 80px}
 .corner{position:absolute;left:50%;bottom:max(22px,env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:2;background:none;border:0;border-bottom:1px solid transparent;padding:6px 4px 2px;margin:0;font:300 13px/1.3 var(--serif);letter-spacing:.04em;color:var(--ink);text-decoration:none;cursor:pointer}
 .corner:hover,.corner:focus-visible{border-color:var(--ink);outline:none}
 .corner.tl{left:22px;top:18px;bottom:auto;transform:none}
-.newmsg{position:absolute;left:0;right:0;bottom:64px;margin:0;text-align:center;font:300 12px var(--serif);color:var(--mute)}
+.newmsg{margin:0;min-height:1.2em;text-align:center;font:300 12px var(--serif);color:var(--mute)}
 .orb.fresh{color:#e83f15}
 .orb.fresh:hover,.orb.fresh:focus-visible{border-color:#e83f15}
 .top{justify-content:space-between}
@@ -94,7 +94,7 @@ main{max-width:1400px;margin:0 auto;padding:30px 0 80px}
 #make{background:none;border:0;border-bottom:1px solid transparent;padding:6px 4px 2px;margin:0;font:inherit;color:inherit;letter-spacing:inherit;cursor:pointer;white-space:nowrap}
 #make:hover,#make:focus-visible{border-color:var(--ink);outline:none}
 .makeedit{display:flex;align-items:baseline;gap:2px;white-space:nowrap;font-size:15px}
-#mk{width:5.5em;border:0;border-bottom:1px solid #e83f15;background:none;font:300 15px var(--serif);text-align:center;padding:2px 0;color:var(--ink);border-radius:0}
+#mk{width:1.75em;border:0;border-bottom:1px solid transparent;background:none;font:300 15px var(--serif);text-align:center;padding:2px 0;color:var(--ink);border-radius:0}
 #mk:focus{outline:none}
 .mkgo{margin-left:12px;background:none;border:0;border-bottom:1px solid var(--ink);padding:2px 2px 1px;font:300 13px var(--serif);color:var(--ink);cursor:pointer}
 .srcrow{display:flex;gap:22px}
@@ -149,3 +149,13 @@ html.dark .ph{background:#1a1d1f}
 #theme{position:fixed;top:max(16px,env(safe-area-inset-top,0px));right:18px;z-index:25;width:30px;height:30px;padding:0;margin:0;border:0;background:none;cursor:pointer;display:grid;place-items:center;-webkit-tap-highlight-color:transparent}
 #theme::after{content:"";width:13px;height:13px;border-radius:50%;border:1px solid var(--ink);background:transparent;transition:background-color .2s}
 html.dark #theme::after{background:var(--ink)}
+/* 아래 '○○으로부터 ●●●' 막대 (첫 화면·새로 만들기 공통) */
+.makebar{position:fixed;left:0;right:0;bottom:max(22px,env(safe-area-inset-bottom,0px));z-index:24;display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none}
+.makebar>*{pointer-events:auto}
+.makeform{font:300 15px/1.3 var(--serif);letter-spacing:.04em;color:var(--ink)}
+#mk{letter-spacing:inherit;text-align:right;cursor:text;transition:border-color .15s;padding-right:0}
+#mk::placeholder{color:var(--ink);opacity:1}
+#mk:focus{border-bottom-color:#e83f15}
+#mk:focus::placeholder{color:transparent}
+.makeform{gap:0}
+#mksuf{margin-left:1px}
